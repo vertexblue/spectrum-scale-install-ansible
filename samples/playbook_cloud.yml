@@ -1,0 +1,21 @@
+---
+#
+# samples/playbook_cloud.yml
+#
+
+# Playbook sample for deploying IBM Spectrum Scale (GPFS) cluster using
+# inventory in JSON format.
+
+# This file is mandatory to import and it will load inventory variables form
+# vars/scale_clusterdefinition.json
+- import_playbook: "set_json_variables.yml"
+
+# Setup Spectrum Scale on nodes and create cluster
+- hosts: scale_node
+  any_errors_fatal: true
+  roles:
+     - core/cluster
+     - gui/cluster
+     - gui/postcheck
+     - zimon/cluster
+     - zimon/postcheck

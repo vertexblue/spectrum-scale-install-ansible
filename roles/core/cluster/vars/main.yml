@@ -1,0 +1,36 @@
+---
+# Variables for the IBM Spectrum Scale (GPFS) role -
+# these variables are *not* meant to be overridden
+
+
+## Minimum Spectrum Scale version that this role was tested with
+scale_minversion: 4.1.1
+
+## Compute RPM version from Spectrum Scale version
+scale_rpmversion: "{{ scale_version | regex_replace('^([0-9.]+)\\.([0-9])$', '\\1-\\2') }}"
+
+## Supported package managers
+scale_pkg_mgr:
+  - yum
+  - dnf
+
+## Remember if RPMs were updated or not
+scale_install_updated: false
+
+## Remember if config params were changed or not
+scale_config_changed: false
+
+# GPFS daemon state
+scale_active_states:
+  - active
+
+# scale supported profile
+gpfs_cluster_system_profile:
+   - gpfsprotocoldefaults
+   - gpfsprotocolrandomio
+
+# user defined profile needs to be installed inside this directory
+scale_cluster_profile_system_path: /var/mmfs/etc/
+
+# default mm command exection path
+scale_command_path: /usr/lpp/mmfs/bin/

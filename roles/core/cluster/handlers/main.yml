@@ -1,0 +1,24 @@
+---
+# Handlers for the IBM Spectrum Scale (GPFS) cluster role
+
+- name: accept-server-licenses
+  command: /usr/lpp/mmfs/bin/mmchlicense server --accept -N serverLicense
+  listen: accept-licenses
+  failed_when: false
+
+- name: accept-client-licenses
+  command: /usr/lpp/mmfs/bin/mmchlicense client --accept -N clientLicense
+  listen: accept-licenses
+  failed_when: false
+
+- name: wait-daemon-active
+  shell: /usr/lpp/mmfs/bin/mmgetstate -N {{ scale_daemon_node_list | join(',') }} -Y | grep -v HEADER | cut -d ':' -f 9
+  register: state
+  until:
+     - ((state.stdout_lines | union(scale_active_states)) | length) == (scale_active_states | length)
+     - "'active' in state.stdout_lines"
+  retries: 10
+  delay: 30
+  changed_when: false
+  delegate_to: "{{ delegate_node }}"
+  when: scale_daemon_node_list | length > 0
