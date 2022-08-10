@@ -2,17 +2,47 @@
 #
 # Install or update RPMs
 #
-- name: Initialize
-  set_fact:
-    disable_gpgcheck: "no"
 
-- name: Disable gpg check
-  set_fact:
-    disable_gpgcheck: "yes"
-  when: scale_version < '5.0.4.0'
+- block:
+    - name: upgrade | Check if gpfs librdkafka installed
+      shell: rpm -q gpfs.librdkafka
+      register: gpfslibrdkafka_installed
+      ignore_errors: true
+      failed_when: false
+      args:
+        warn: false
+
+    - name: upgrade | Set if gpfs librdkafka installed
+      set_fact:
+        librdkafka_installed: true
+      when:
+        - gpfslibrdkafka_installed.rc == 0
+  when:
+    - ansible_pkg_mgr == 'yum' or ansible_pkg_mgr == 'dnf'
+    - offline_upgrade is defined and offline_upgrade | bool
 
 - name: upgrade | Upgrade GPFS file audit logging packages
-  package:
+  yum:
     name: "{{ scale_install_all_packages }}"
     state: latest
-    disable_gpg_check: "{{ disable_gpgcheck }}"
+    disable_gpg_check: "{{ scale_disable_gpgcheck }}"
+  when:
+     - ansible_pkg_mgr == 'yum'
+     - librdkafka_installed is not defined
+
+- name: upgrade | Upgrade GPFS file audit logging packages
+  yum:
+    name: "{{ scale_install_all_packages }}"
+    state: latest
+    update_only: yes
+    disable_gpg_check: "{{ scale_disable_gpgcheck }}"
+  when:
+     - ansible_pkg_mgr == 'yum'
+     - librdkafka_installed is defined and librdkafka_installed | bool
+
+- name: upgrade | Upgrade GPFS file audit logging packages
+  dnf:
+    name: "{{ scale_install_all_packages }}"
+    state: latest
+    disable_gpg_check: "{{ scale_disable_gpgcheck }}"
+  when: ansible_pkg_mgr == 'dnf'

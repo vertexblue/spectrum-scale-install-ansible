@@ -64,6 +64,7 @@ scale_install_gpfs_rpms:
   - gpfs.docs
   - gpfs.msg.en_US
   - gpfs.compression
+  - gpfs.gpl*
   # Appropriate gpfs.gskit version will be installed automatically
 
 ## List of GPFS RPMs to install (prior to version 5.0.2.0)
@@ -77,7 +78,7 @@ scale_install_gplsrc_rpms:
 
 ## Define this variable to install Linux kernel extension from pre-built RPM
 ## (instead of building it from source)
-#scale_install_gplbin_rpm: gpfs.gplbin-{{ ansible_kernel }}-{{ scale_rpmversion }}
+#scale_install_gplbin_package: gpfs.gplbin-{{ ansible_kernel }}-{{ scale_rpmversion }}
 
 ## Note that required RPM can be built with `mmbuildgpl --build-package`
 
@@ -96,6 +97,12 @@ scale_build_gplsrc_prereqs:
   - kernel-devel
   - make
 
+## List of optional prereq package to install
+scale_prereqs_package:
+  - numactl
+
+## List of optional prereq package to install flag
+scale_install_prereqs_packages: false
 
 ## Default cluster name
 scale_cluster_clustername: gpfs1.local

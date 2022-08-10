@@ -33,10 +33,10 @@
 #
 - block:
     - name: install | Copy installation package to node
-      synchronize:
+      copy:
         src: "{{ scale_install_directory_pkg_path }}"
         dest: "{{ scale_extracted_path }}"
-        use_ssh_args: yes
+        mode: a+x
 
 - name: install | Extract installation package
   set_fact:

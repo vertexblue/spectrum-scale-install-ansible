@@ -40,7 +40,6 @@
         dest: "{{ scale_extracted_path }}"
         use_ssh_args: yes
 
-
 - name: install | Set installation package path
   set_fact:
     dir_path: "{{ scale_extracted_path + '/' + scale_install_directory_pkg_path | basename }}"
@@ -57,8 +56,20 @@
   rpm_key:
     state: present
     key: "{{ dir_path }}/SpectrumScale_public_key.pgp"
-  when: ((ansible_distribution in scale_sles_distribution or ansible_distribution in scale_rhel_distribution)
+  when:
+      - ((ansible_distribution in scale_sles_distribution or ansible_distribution in scale_rhel_distribution)
          and scale_enable_gpg_check and scale_version >= "5.0.5.0")
+      - scale_gpgkey_path is undefined
+
+- name: Import a gpg key from a file
+  rpm_key:
+    state: present
+    key: "{{ scale_gpgkey_path }}/SpectrumScale_public_key.pgp"
+  when:
+      - ((ansible_distribution in scale_sles_distribution or ansible_distribution in scale_rhel_distribution)
+         and scale_enable_gpg_check and scale_version >= "5.0.5.0")
+      - scale_gpgkey_path is defined
+
 
 #
 # Find GPFS BASE
@@ -140,6 +151,24 @@
       No Global Security Kit (GSKit) package found:
       {{ dir_path }}/gpfs.gskit*{{ scale_architecture }}*
 
+
+#
+# Find GPLBIN
+#
+# - name: install | Find GPFS BIN (gpfs.gplbin) package
+#   find:
+#     paths: "{{ dir_path }}"
+#     patterns: gpfs.gplbin*{{ scale_architecture }}*
+#   register: scale_install_gpfs_gplbin
+
+# - name: install | Check valid GPFS BIN (gpfs.gplbin) package
+#   assert:
+#     that: scale_install_gpfs_gplbin.matched > 0
+#     msg: >-
+#       No GPFS BIN (gpfs.gplbin) package found:
+#       {{ dir_path }}/gpfs.gplbin*{{ scale_architecture }}*
+
+
 #
 # Add GPFS Packages
 #
@@ -153,6 +182,7 @@
     - "{{ scale_install_gpfs_doc.files.0.path | basename }}"
     - "{{ scale_install_gpfs_msg.files.0.path | basename }}"
     - "{{ scale_install_gpfs_gskit.files.0.path | basename }}"
+#    - "{{ scale_install_gpfs_gplbin.files.0.path | basename }}"
 
 - name: install | Add GPFS compression packages to list
   vars:

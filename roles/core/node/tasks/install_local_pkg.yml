@@ -74,7 +74,7 @@
 - name: install | Extract installation package
   vars:
     localpkg: "{{ scale_install_localpkg_tmpdir_path + '/' + scale_install_localpkg_path | basename }}"
-  command: "{{ localpkg + ' --silent' }}"
+  command: "{{ '/bin/bash ' + localpkg + ' --silent' }}"
   args:
     creates: "{{ scale_gpfs_path_url }}"
 
@@ -195,6 +195,22 @@
       {{ scale_gpfs_path_url }}/gpfs.gskit*{{ scale_architecture }}*
 
 #
+# Find GPLBIN
+#
+- name: install | Find GPFS BIN (gpfs.gplbin) package
+  find:
+    paths: "{{ scale_gpfs_path_url }}"
+    patterns: gpfs.gplbin*{{ scale_architecture }}*
+  register: scale_install_gpfs_gplbin
+
+- name: install | Check valid GPFS BIN (gpfs.gplbin) package
+  assert:
+    that: scale_install_gpfs_gplbin.matched > 0
+    msg: >-
+      No GPFS BIN (gpfs.gplbin) package found:
+      {{ scale_gpfs_path_url }}/gpfs.gplbin*{{ scale_architecture }}*
+
+#
 # Add GPFS packages
 #
 - name: install | Add GPFS packages to list
@@ -208,6 +224,7 @@
     - "{{ scale_install_gpfs_msg.files.0.path | basename }}"
     - "{{ scale_install_gpfs_gskit.files.0.path | basename }}"
     - "{{ scale_install_gpfs_compression.files.0.path | basename }}"
+    - "{{ scale_install_gpfs_gplbin.files.0.path | basename }}"
 
 - name: install | Add GPFS packages to list (prior to version 5.0.2.0)
   vars:
