@@ -39,7 +39,9 @@
         src: "{{ scale_install_directory_pkg_path }}"
         dest: "{{ scale_extracted_path }}"
         use_ssh_args: yes
+        register: rsync_result
       retries: 10
+      until: rsync_result is success
       delay: 5
 
 - name: install | Set installation package path
