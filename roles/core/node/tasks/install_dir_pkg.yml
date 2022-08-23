@@ -35,18 +35,11 @@
 
 - block:
     - name: install | Copy installation package to node
-    - find: paths={{ scale_install_directory_pkg_path }} recurse=yes patterns="*.*"
-      register: file_to_copy
-    - copy: src={{ item.path }} dest={{ scale_extracted_path }}
-      owner: root
-      mode: 0775
-      with_items: "{{ files_to_copy.files }}"
-
-      # synchronize:
-      #   src: "{{ scale_install_directory_pkg_path }}"
-      #   dest: "{{ scale_extracted_path }}"
-      #   use_ssh_args: yes
-      # delay: 60
+      synchronize:
+        src: "{{ scale_install_directory_pkg_path }}"
+        dest: "{{ scale_extracted_path }}"
+        use_ssh_args: yes
+      delay: 60
 
 - name: install | Set installation package path
   set_fact:
