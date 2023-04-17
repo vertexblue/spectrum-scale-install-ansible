@@ -1,0 +1,38 @@
+- name: copy configuration file
+  hosts: client_gui_hostname
+  any_errors_fatal: true
+  gather_facts: true
+  tasks:
+    - name: Copy config to /var/mmfs/ssl
+      ansible.builtin.copy:
+        src: "{{src_file}}"
+        dest: /var/mmfs/ssl/dr-config.json
+        owner: root
+        group: root
+        mode: "0644"
+
+- name: copy configuration file
+  hosts: storage_gui_hostname
+  any_errors_fatal: true
+  gather_facts: true
+  tasks:
+    - name: Copy config to /var/mmfs/ssl
+      ansible.builtin.copy:
+        src: "{{src_file}}"
+        dest: /var/mmfs/ssl/dr-config.json
+        owner: root
+        group: root
+        mode: "0644"
+
+- hosts: storage_gui_hostname
+  vars:
+    input: "{{ lookup('file','dr-config.json') | from_json }}"
+
+  tasks: 
+    - name: Set validate_certs_uri
+      set_fact:
+        validate_certs_uri: "{{ input.validate_certs_uri }}"
+
+    - name: Print out validate_certs_uri
+      debug:
+        var: validate_certs_uri

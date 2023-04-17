@@ -1,0 +1,30 @@
+
+#--------------------------------------------------------------------------      
+
+- hosts: storage_gui_hostname
+  tasks:
+    - set_fact: 
+        validate_certs_uri: 'no'
+        restapi_retries_count: 5
+        restapi_retries_delay: 3
+        scale_remotemount_client_gui_username: "admin"
+        scale_remotemount_client_gui_password: "Passw0rd"
+        scale_remotemount_client_gui_hostname: "192.168.9.3"
+        scale_remotemount_storage_gui_username: "admin"
+        scale_remotemount_storage_gui_password: "Passw0rd"
+        scale_remotemount_storage_gui_hostname: "192.168.8.4"
+        scalemgmt_endpoint: "scalemgmt/v2"
+        remote_mount_endpoint: "scalemgmt/v2/remotemount"
+        scale_remotemount_filesystem_names:
+          - { scale_remotemount_storage_filesystem_name: "drfs1", scale_remotemount_client_filesystem_name: "drfs1", scale_remotemount_client_remotemount_path: "/gpfs/drfs1", } # Minimum variables
+        scale_fileset_names:
+          - { scale_fileset_name: "primary2", scale_fileset_storage_filesystem_name: "prdfs1", scale_fileset_client_filesystem_name: "drfs1"} # Minimum variables
+      run_once: True
+
+   - name: Mount Filesystem | Client Cluster (access) | Add and Mount the filesystems on client clusters
+      include_tasks: myfilesets.yml
+      loop: "{{ scale_fileset_names }}"
+      run_once: True
+      loop_control:
+        loop_var: fileset_loop
+        index_var: index

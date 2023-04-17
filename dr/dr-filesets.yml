@@ -1,0 +1,141 @@
+---
+- name: Client Cluster (access) | Check if the fileset ( {{fileset_loop.scale_fileset_name}} ) is already defined
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ scale_remotemount_storage_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.scale_fileset_storage_filesystem_name }}/filesets
+    method: GET
+    user: "{{ scale_remotemount_storage_gui_username }}"
+    password: "{{ scale_remotemount_storage_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: get_fileset_results
+  ignore_errors: true
+  run_once: True
+
+- set_fact:
+    fileset_names: "{{ get_fileset_results.json |  json_query(jmesquery) }}"
+  vars:
+    jmesquery: "filesets[*].filesetName"
+  run_once: True
+
+- name: Fileset information
+  debug:
+    msg: "{{ fileset_names }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+  run_once: True
+
+- name: block
+  block:
+    - name: Storage Cluster (owning) | Create the fileset ({{ fileset_loop.scale_fileset_storage_fileset_name }})
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: true
+        url: https://{{ scale_remotemount_storage_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.scale_fileset_storage_filesystem_name }}/filesets
+        method: POST
+        user: "{{ scale_remotemount_storage_gui_username }}"
+        password: "{{ scale_remotemount_storage_gui_password }}"
+        body_format: json
+        body: |
+          {
+            "filesetName": "{{ fileset_loop.scale_fileset_name }}", 
+            "afmMode": "primary", 
+            "inodeSpace": "new", 
+            "afmTarget": "gpfs:///gpfs/{{ fileset_loop.scale_fileset_client_filesystem_name }}/{{ fileset_loop.scale_fileset_name }}",
+            "afmRPO": 60
+          }
+        status_code:
+          - 202
+      register: storage_fileset_return
+      run_once: True
+
+    - name: Add fileset response
+      debug:
+        msg: "{{ storage_fileset_return }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+      run_once: True
+
+    - name: "Storage Cluster (owning) | Check the result of creating the fileset and mounting the filesystem (JOB: {{ storage_fileset_return.json.jobs[0].jobId }})"
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: true
+        url: https://{{ scale_remotemount_storage_gui_hostname }}/{{ scalemgmt_endpoint }}/jobs/{{ storage_fileset_return.json.jobs[0].jobId }}
+        method: GET
+        user: "{{ scale_remotemount_storage_gui_username }}"
+        password: "{{ scale_remotemount_storage_gui_password }}"
+      register: completed_check1
+      until: completed_check1.json.jobs[0].status == "COMPLETED"
+      retries: "{{ restapi_retries_count }}"
+      delay: "{{ restapi_retries_delay }}"
+      run_once: True
+
+    - name: Storage Cluster (owning) | Check if afmPrimaryID for the filesystem ({{ fileset_loop.scale_fileset_name }})
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: yes
+        url: "https://{{ scale_remotemount_storage_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.scale_fileset_storage_filesystem_name }}/filesets?fields=:all:"
+        method: GET
+        user: "{{ scale_remotemount_storage_gui_username }}"
+        password: "{{ scale_remotemount_storage_gui_password }}"
+        body_format: json
+        status_code:
+          - 200
+      register: get_afmprimaryid
+      ignore_errors: true
+      run_once: True
+
+    - set_fact:
+        fileset_id: "{{ get_fileset_results.json |  json_query(jmesquery) }}"
+      vars:
+        jmesquery: "filesets[?filesetName=='{{ fileset_loop.scale_fileset_name }}'].afm.afmPrimaryID"
+      run_once: True
+
+    - name: Fileset information
+      debug:
+        msg: "{{ fileset_id }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+      run_once: True
+
+    - name: Client Cluster (access) | Create the fileset ({{ fileset_loop.scale_fileset_name }})
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: true
+        url: https://{{ scale_remotemount_client_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.scale_fileset_client_filesystem_name }}/filesets
+        method: POST
+        user: "{{ scale_remotemount_client_gui_username }}"
+        password: "{{ scale_remotemount_client_gui_password }}"
+        body_format: json
+        body: |
+          {
+            "filesetName": "{{ fileset_loop.scale_fileset_name }}", 
+            "afmMode": "secondary", 
+            "inodeSpace": "new", 
+            "afmPrimaryID": "{{fileset_id}}"
+          }
+        status_code:
+          - 202
+      register: client_fileset_return
+      run_once: True
+
+    - name: Add fileset response
+      debug:
+        msg: "{{ client_fileset_return }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+      run_once: True
+
+    - name: "Client Cluster (access) | Check the result of creating the fileset and mounting the filesystem (JOB: {{ client_fileset_return.json.jobs[0].jobId }})"
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: true
+        url: https://{{ scale_remotemount_client_gui_hostname }}/{{ scalemgmt_endpoint }}/jobs/{{ client_fileset_return.json.jobs[0].jobId }}
+        method: GET
+        user: "{{ scale_remotemount_client_gui_username }}"
+        password: "{{ scale_remotemount_client_gui_password }}"
+      register: completed_check2
+      until: completed_check2.json.jobs[0].status == "COMPLETED"
+      retries: "{{ restapi_retries_count }}"
+      delay: "{{ restapi_retries_delay }}"
+      run_once: True
+
+  when: (get_fileset_results.status == 400) or (get_fileset_results.status == 200 and fileset_loop.scale_fileset_name not in fileset_names)

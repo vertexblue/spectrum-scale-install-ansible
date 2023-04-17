@@ -1,0 +1,70 @@
+---
+- name: Client Cluster (access) | Check if the remote filesystem ({{filesystem_loop.scale_remotemount_client_filesystem_name}}) is already defined
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ scale_remotemount_storage_gui_hostname }}/{{ remote_mount_endpoint }}/remotefilesystems/{{ filesystem_loop.scale_remotemount_client_filesystem_name }}
+    method: GET
+    user: "{{ scale_remotemount_storage_gui_username }}"
+    password: "{{ scale_remotemount_storage_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: remote_filesystem_results
+  ignore_errors: true
+  run_once: True
+
+- name: block
+  block:
+    - name: Client Cluster (access) | Create the remotefs and then mount the filesystem ({{filesystem_loop.scale_remotemount_client_filesystem_name}})
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: true
+        url: https://{{ scale_remotemount_storage_gui_hostname }}/{{ remote_mount_endpoint }}/remotefilesystems
+        method: POST
+        user: "{{ scale_remotemount_storage_gui_username }}"
+        password: "{{ scale_remotemount_storage_gui_password }}"
+        body_format: json
+        body: |
+          {
+            "remoteFilesystem": "{{ filesystem_loop.scale_remotemount_client_filesystem_name }}",
+            "owningFilesystem": "{{ filesystem_loop.scale_remotemount_client_filesystem_name }}",
+            "owningCluster": "{{ client_cluster_name }}",
+            "remoteMountPath": "{{ filesystem_loop.scale_remotemount_client_remotemount_path | realpath }}",
+            "mountOptions": "{{ filesystem_loop.scale_remotemount_access_mount_attributes | default('rw') }}",
+            "automount": "{{ filesystem_loop.scale_remotemount_client_mount_fs | default('yes') }}",
+            "mountOnNodes": "all"
+          }
+        status_code:
+          - 202
+      register: send_key
+      run_once: True
+
+    - name: Add filesystem response
+      debug:
+        msg: "{{ storage_fileset_return }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+      run_once: True
+
+    - name: "Client Cluster (access) | Check the result of adding the remotefs and mounting the filesystem (JOB: {{ send_key.json.jobs[0].jobId }})"
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: true
+        url: https://{{ scale_remotemount_storage_gui_hostname }}/{{ scalemgmt_endpoint }}/jobs/{{ send_key.json.jobs[0].jobId }}
+        method: GET
+        user: "{{ scale_remotemount_storage_gui_username }}"
+        password: "{{ scale_remotemount_storage_gui_password }}"
+      register: completed_check
+      until: completed_check.json.jobs[0].status == "COMPLETED"
+      retries: "{{ restapi_retries_count }}"
+      delay: "{{ restapi_retries_delay }}"
+      run_once: True
+
+    - name: "Client Cluster (access) | Mount remote filesystem to storage nodes"
+      shell: mmmount {{ filesystem_loop.scale_remotemount_client_filesystem_name }} -a
+      register: remote_mount_return
+      run_once: True
+      changed_when: false
+      failed_when: false
+
+  when: (remote_filesystem_results.status == 400)

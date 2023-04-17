@@ -1,0 +1,30 @@
+---
+#
+# samples/playbook_remote_mount.yml
+#
+
+# Playbook sample for deploying IBM Spectrum Scale (GPFS) cluster with Remote_Mount
+# enabled. Additional variables need to be defined for this, it is recommended
+# to use Ansible group variables for this purpose:
+# client is dr
+# https://docs.ansible.com/ansible/latest/user_guide/intro_inventory.html#assigning-a-variable-to-many-machines-group-variables
+
+- hosts: cluster01
+  collections:
+    - ibm.spectrum_scale
+  vars:
+    scale_remotemount_client_gui_username: admin
+    scale_remotemount_client_gui_password: Passw0rd
+    scale_remotemount_client_gui_hostname: 192.168.7.4
+    scale_remotemount_storage_gui_username: admin
+    scale_remotemount_storage_gui_password: Passw0rd
+    scale_remotemount_storage_gui_hostname: 192.168.6.6
+    scale_remotemount_filesystem_name:
+      - { scale_remotemount_client_filesystem_name: "prdfs1", scale_remotemount_client_remotemount_path: "/gpfs/prdfs1", scale_remotemount_storage_filesystem_name: "prdfs1", } # Minimum variables
+      - { scale_remotemount_client_filesystem_name: "prdfs2", scale_remotemount_client_remotemount_path: "/gpfs/prdfs2", scale_remotemount_storage_filesystem_name: "prdfs2", scale_remotemount_client_mount_priority: '2', scale_remotemount_access_mount_attributes: "rw", scale_remotemount_client_mount_fs: "yes"  }
+  roles:
+    - remote_mount
+
+# If Accessing/Client Cluster don't have GUI,
+# Then change wee need to add variable scale_remotemount_client_no_gui: true and ansible "hosts" need to point to one of the Scale client cluster node
+# See also playbook remote_mount_cli.yml
