@@ -32,3 +32,8 @@
   debug:
     msg: "{{ link_target_fileset_result }}"
   when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+
+- name: source Cluster (access) | Link fileset ({{fileset_loop.source_dir}})      
+  command: mmafmctl {{ fileset_loop.source_scale_filesystem }} getstate
+  register: source_fileset_link_result
+  ignore_errors: true

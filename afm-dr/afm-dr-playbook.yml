@@ -104,13 +104,13 @@
     - name: target Cluster (access) | Add source cluster on the target cluster
       command: /usr/lpp/mmfs/bin/mmauth add {{source_cluster_name}} -k "/var/mmfs/ssl/source_rsa.pub"
       register: auth_key_return
-      failed_when: auth_key_return.rc > 1
-      when: check_mmauth_show.rc > 1
+      delay: 10
+      failed_when: auth_key_return.rc not in [1, 0]
+      ignore_errors: true 
 
     - name: target Cluster (access) | Granting and afm configuration of the filesystem
       include_tasks: afm-dr-target-filesystem.yml
-      loop: "{{ afm_dr_target_filesystem }}"
-      
+      loop: "{{ afm_dr_target_filesystem }}"      
       loop_control:
         loop_var: target_filesystem_loop
         index_var: index   
@@ -171,7 +171,9 @@
     - name: "target Cluster (access) | Assign remote cluster role to storage nodes"
       shell: mmremotecluster add {{target_cluster_name}} -n {{target_storage_nodes | join(',')}} -k "/var/mmfs/ssl/target_rsa.pub"
       register: assign_remotecluster_return      
-      ignore_errors: true  
+      delay: 10
+      failed_when: assign_remotecluster_return.rc not in [1, 0]
+      ignore_errors: true 
 
     - name: Print output for remote cluster assignment
       debug:

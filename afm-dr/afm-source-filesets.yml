@@ -28,6 +28,7 @@
   - name: source Cluster (owning) | Create fileset  ({{fileset_loop.source_dir}})
     command: mmcrfileset {{ fileset_loop.source_scale_filesystem }} {{ fileset_loop.source_dir }} -p afmMode=primary --inode-space=new -p afmtarget=gpfs://{{fileset_loop.target_filesystem_mountpoint}}/{{ fileset_loop.target_dir }} -p afmRPO=60
     register: add_source_fileset_result
+    delay: 30
     ignore_errors: true
 
   - name: Create new fileset result
