@@ -1,0 +1,26 @@
+{
+    "source_scale_gui_username": "admin",
+    "source_scale_gui_password": "Passw0rd",
+    "source_scale_gui_hostname": "192.168.8.4",
+    "target_scale_gui_username": "admin",
+    "target_scale_gui_password": "Passw0rd",
+    "target_scale_gui_hostname": "192.168.9.3",
+    "afm_dr_mappings": [
+        {
+            "source_dir": "primary1",
+            "target_dir": "dr1",
+            "source_filesystem_mountpoint": "/gpfs/prdfs1",
+            "target_filesystem_mountpoint": "/gpfs/drfs1",
+            "source_scale_filesystem": "prdfs1",
+            "target_scale_filesystem": "drfs1"
+        },
+        {
+            "source_dir": "source",
+            "target_dir": "source",
+            "source_filesystem_mountpoint": "/gpfs/prdfs2",
+            "target_filesystem_mountpoint": "/gpfs/drfs2",
+            "source_scale_filesystem": "prdfs2",
+            "target_scale_filesystem": "drfs2"
+        }
+    ]
+}

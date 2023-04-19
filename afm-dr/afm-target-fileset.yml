@@ -1,0 +1,73 @@
+---
+- name: target Cluster (access) | Check if the fileset ( {{fileset_loop.target_scale_filesystem}} ) is already defined
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ target_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.target_scale_filesystem }}/filesets
+    method: GET
+    user: "{{ target_scale_gui_username }}"
+    password: "{{ target_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: target_fileset_results
+  ignore_errors: true
+
+- set_fact:
+    target_fileset_names: "{{ target_fileset_results.json |  json_query(jmesquery) }}"
+  vars:
+    jmesquery: "filesets[*].filesetName"
+
+- name: target fileset information
+  debug:
+    msg: "{{ target_fileset_names }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+
+
+- name: block
+  block:
+    - name: Storage Cluster (owning) | Check if afmPrimaryID for the filesystem ({{ fileset_loop.source_dir }})
+      uri:
+        validate_certs: "{{ validate_certs_uri }}"
+        force_basic_auth: yes
+        url: "https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.source_scale_filesystem }}/filesets?fields=:all:"
+        method: GET
+        user: "{{ source_scale_gui_username }}"
+        password: "{{ source_scale_gui_password }}"
+        body_format: json
+        status_code:
+          - 200
+      register: get_afmprimaryid
+      ignore_errors: true      
+
+    - set_fact:
+        fileset_id: "{{ get_afmprimaryid.json |  json_query(jmesquery) | first | join }}"
+      vars:
+        jmesquery: "filesets[?filesetName=='{{ fileset_loop.source_dir }}'].afm.afmPrimaryID"
+
+    - name: Fileset information
+      debug:
+        msg: "{{ fileset_id }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+
+    - name: target Cluster (access) | Create fileset  ({{fileset_loop.target_dir}})
+      command: mmcrfileset {{ fileset_loop.target_scale_filesystem }} {{ fileset_loop.target_dir }} -p afmMode=secondary --inode-space=new -p afmPrimaryId={{ fileset_id }}
+      register: create_target_fileset_result
+      ignore_errors: true
+
+    - name: Create new fileset result
+      debug:
+        msg: "{{ create_target_fileset_result }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+
+    - name: target Cluster (access) | Link fileset ({{fileset_loop.target_dir}})      
+      command: mmlinkfileset {{ fileset_loop.target_scale_filesystem }} {{ fileset_loop.target_dir }} -J {{fileset_loop.target_filesystem_mountpoint}}/{{fileset_loop.target_dir}}
+      register: link_target_fileset_result
+      ignore_errors: true
+
+    - name: Create new fileset link result
+      debug:
+        msg: "{{ link_target_fileset_result }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+
+  when: (target_fileset_results.status == 400) or (target_fileset_results.status == 200 and fileset_loop.target_dir not in target_fileset_names)

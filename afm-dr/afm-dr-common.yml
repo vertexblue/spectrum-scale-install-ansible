@@ -1,0 +1,240 @@
+---
+- name: "Read source cluster information"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/cluster
+    method: GET
+    user: "{{ source_scale_gui_username }}"
+    password: "{{ source_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: source_cluster_info
+  
+
+- name: Target Cluster information
+  debug:
+    msg: "{{ source_cluster_info }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+  
+
+- set_fact: 
+    source_cluster_name: "{{source_cluster_info.json.cluster.clusterSummary.clusterName}}"
+
+- name: Target cluster Name
+  debug:
+    msg: "{{ source_cluster_name }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- name: "Read target cluster information"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ target_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/cluster
+    method: GET
+    user: "{{ target_scale_gui_username }}"
+    password: "{{ target_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: target_cluster_info
+  
+
+- name: Traget cluster information
+  debug:
+    msg: "{{ target_cluster_info }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+  
+
+- set_fact: 
+    target_cluster_name: "{{target_cluster_info.json.cluster.clusterSummary.clusterName}}"
+
+- name: Target cluster Name
+  debug:
+    msg: "{{ target_cluster_name }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- name: "Read source cluster filesystems information"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems?fields=mount.mountPoint
+    method: GET
+    user: "{{ source_scale_gui_username }}"
+    password: "{{ source_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: source_filesystem_info
+  
+
+- name: Filsystem information
+  debug:
+    msg: "{{ source_filesystem_info }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- set_fact:
+    source_filesystem: "{{source_filesystem_info.json.filesystems}}"
+
+- name: Read source filesystem mountpoint
+  debug:
+    msg: "{{ source_filesystem }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- name: "Read target cluster filesystems information"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ target_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems?fields=mount.mountPoint
+    method: GET
+    user: "{{ target_scale_gui_username }}"
+    password: "{{ target_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: target_filesystem_info
+  
+
+- name: Filsystem information
+  debug:
+    msg: "{{ target_filesystem_info }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- set_fact:
+    target_filesystem: "{{target_filesystem_info.json.filesystems}}"
+
+- name: Read target filesystem mountpoint
+  debug:
+    msg: "{{ target_filesystem }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+    
+
+- name: "Read source cluster key"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/remotemount/authenticationkey
+    method: GET
+    user: "{{ source_scale_gui_username }}"
+    password: "{{ source_scale_gui_password }}"
+    body_format: raw
+    status_code:
+      - 200
+  register: source_cluster_key
+  
+
+- name: "Write cluster key in Json"
+  copy:
+    content: "{{ source_cluster_key | json_query('json.key[]') }}"
+    dest: "/var/mmfs/ssl/source_rsa.json"
+  
+  changed_when: false
+  failed_when: false
+
+- name: "Write cluster key"
+  shell:
+    cmd: sed 's/,/\n/g' /var/mmfs/ssl/source_rsa.json | tr -d '"\[\]' | sed 's/^ //' > /var/mmfs/ssl/source_rsa.pub
+    warn: false
+  
+  changed_when: false
+  failed_when: false
+
+- name: "Read target cluster key"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ target_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/remotemount/authenticationkey
+    method: GET
+    user: "{{ target_scale_gui_username }}"
+    password: "{{ target_scale_gui_password }}"
+    body_format: raw
+    status_code:
+      - 200
+  register: target_cluster_key
+  
+
+- name: "Write cluster key in Json"
+  copy:
+    content: "{{ target_cluster_key | json_query('json.key[]') }}"
+    dest: "/var/mmfs/ssl/target_rsa.json"
+  
+  changed_when: false
+  failed_when: false
+
+- name: "Write cluster key"
+  shell:
+    cmd: sed 's/,/\n/g' /var/mmfs/ssl/target_rsa.json | tr -d '"\[\]' | sed 's/^ //' > /var/mmfs/ssl/target_rsa.pub
+    warn: false
+  
+  changed_when: false
+  failed_when: false 
+
+- name: "Read source cluster storage nodes information"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/nodeclasses/storagenodegrp
+    method: GET
+    user: "{{ source_scale_gui_username }}"
+    password: "{{ source_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: source_cluster_storage_nodes
+  
+
+- name: Filsystem information
+  debug:
+    msg: "{{ source_cluster_storage_nodes }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- set_fact:
+    source_cluster_storage_nodes_name: "{{source_cluster_storage_nodes.json.nodeclasses[0].memberNodes}}"
+
+- name: Cluster storage nodes
+  debug:
+    msg: "{{ source_cluster_storage_nodes_name }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- name: Cluster target cluster storage nodes
+  debug:
+    msg: "{{ source_cluster_name }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- name: "Read target cluster storage nodes information"
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ target_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/nodeclasses/storagenodegrp
+    method: GET
+    user: "{{ target_scale_gui_username }}"
+    password: "{{ target_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: target_cluster_storage_nodes
+  
+
+- name: Filsystem information
+  debug:
+    msg: "{{ target_cluster_storage_nodes }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
+
+- set_fact:
+    target_cluster_storage_nodes_name: "{{target_cluster_storage_nodes.json.nodeclasses[0].memberNodes}}"
+ 
+- name: Cluster source cluster storage nodes
+  debug:
+    msg: "{{ target_cluster_storage_nodes_name }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+  
