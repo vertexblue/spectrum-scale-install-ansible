@@ -1,0 +1,12 @@
+---
+- name: target Cluster (access) | Authorize filesystem
+  command: /usr/lpp/mmfs/bin/mmauth grant {{source_cluster_name}} -f {{target_filesystem_loop}}
+  register: auth_filesystem_return
+  ignore_errors: true
+
+- name: target Cluster (access) | Enabled AFM on the filesystem
+  shell: /usr/lpp/mmfs/bin/mmafmconfig enable {{ afm_dr_mappings | json_query(jmesquery) | first }}
+  vars:
+    jmesquery: "[?target_scale_filesystem=='{{ target_filesystem_loop }}'].target_filesystem_mountpoint" 
+  register: afm_enable_filesystem_return
+  ignore_errors: true  

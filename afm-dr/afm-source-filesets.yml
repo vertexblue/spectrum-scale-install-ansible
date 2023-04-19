@@ -1,0 +1,38 @@
+---
+- name: source Cluster (access) | Check if the fileset ( {{fileset_loop.source_scale_filesystem}} ) is already defined
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.source_scale_filesystem }}/filesets
+    method: GET
+    user: "{{ source_scale_gui_username }}"
+    password: "{{ source_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: source_fileset_results
+  ignore_errors: true  
+
+- set_fact:
+    source_fileset_names: "{{ source_fileset_results.json |  json_query(jmesquery) }}"
+  vars:
+    jmesquery: "filesets[*].filesetName"  
+
+- name: Fileset information
+  debug:
+    msg: "{{ source_fileset_names }}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+
+- name: block
+  block:
+  - name: source Cluster (owning) | Create fileset  ({{fileset_loop.source_dir}})
+    command: mmcrfileset {{ fileset_loop.source_scale_filesystem }} {{ fileset_loop.source_dir }} -p afmMode=primary --inode-space=new -p afmtarget=gpfs://{{fileset_loop.target_filesystem_mountpoint}}/{{ fileset_loop.target_dir }} -p afmRPO=60
+    register: add_source_fileset_result
+    ignore_errors: true
+
+  - name: Create new fileset result
+    debug:
+      msg: "{{ add_source_fileset_result }}"
+    when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+
+  when: (source_fileset_results.status == 400) or (source_fileset_results.status == 200 and fileset_loop.source_dir not in source_fileset_names)

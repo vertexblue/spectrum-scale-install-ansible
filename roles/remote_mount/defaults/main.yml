@@ -1,6 +1,6 @@
 ---
 # defaults file for remote_mount
-scale_remotemount_debug: false
+scale_remotemount_debug: true
 scale_remotemount_forceRun: false
 
 # retries - 2 minutes (40 x 3 seconds)

@@ -1,0 +1,56 @@
+---
+- name: Print input of filesystem names
+  debug:
+    msg: "target filesystem = {{ target_filesystem_loop }}"
+  vars:
+    jmesquery: "[*].target_scale_filesystem"  
+
+- set_fact:
+    target_filesystem_mountpoint: "{{ afm_dr_mappings | json_query(jmesquery) | first | join }}"
+  vars:
+    jmesquery: "[?target_scale_filesystem=='{{target_filesystem_loop}}'].target_filesystem_mountpoint"
+
+- name: Print configuration of filesystem names
+  debug:
+    msg: "{{ target_filesystem_mountpoint }}"
+
+- name: source Cluster (owning) | Check if the remote filesystem ({{target_filesystem_loop}}) is already defined
+  uri:
+    validate_certs: "{{ validate_certs_uri }}"
+    force_basic_auth: yes
+    url: https://{{ source_scale_gui_hostname }}/{{ remote_mount_endpoint }}/remotefilesystems/{{ target_filesystem_loop }}
+    method: GET
+    user: "{{ source_scale_gui_username }}"
+    password: "{{ source_scale_gui_password }}"
+    body_format: json
+    status_code:
+      - 200
+  register: remote_filesystem_results
+  ignore_errors: true
+  
+
+- name: block
+  block:
+    - name: source Cluster (owning) | Assign remote filesystem to the target cluster
+      command: mmremotefs add {{target_filesystem_loop}} -f {{target_filesystem_loop}} -C  {{target_cluster_name}} -T {{target_filesystem_mountpoint}}
+      register: remote_ref_return
+      failed_when: (remote_ref_return.rc !=0)
+
+    - name: source Cluster (owning) | Remoteefs filesystem response
+      debug:
+        msg: "{{ remote_ref_return }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+      
+
+    - name: "source Cluster (owning) | Mount remote filesystem to storage nodes"
+      shell: mmmount {{ target_filesystem_loop }} -a
+      register: remote_mount_return
+      failed_when: "remote_mount_return.rc not in [ 0, 1 ]"
+
+    - name: source Cluster (owning) | Mount filesystem response
+      debug:
+        msg: "{{ remote_mount_return }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+      
+
+  when: (remote_filesystem_results.status == 400)
