@@ -83,7 +83,7 @@
         jmesquery: "[*].target_scale_filesystem"  
 
     - name: target Cluster (access) | Granting and mounting afm configuration of the filesystem
-      include_tasks: afm-dr-target-filesystem.yml
+      include_tasks: afm-dr-target-filesystems.yml
       loop: "{{ afm_dr_target_filesystem }}"      
       loop_control:
         loop_var: target_filesystem_loop
