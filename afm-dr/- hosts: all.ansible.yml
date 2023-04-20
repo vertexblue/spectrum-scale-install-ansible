@@ -1,0 +1,152 @@
+- hosts: afm-dr-source-gui-hostname
+  tasks:
+    - name: test
+      command: /usr/lpp/mmfs/bin/mmremotecluster
+      register: output
+
+    - name: Print Source cluster storage nodes
+      debug:
+        msg: "{{ output }}"
+
+/usr/lpp/mmfs/bin/mmchnode -N gpfs-02-storage-instance-2 --gateway
+
+---
+
+- hosts: afm-dr-source-gui-hostname
+  vars:
+    input: "{{ lookup('file','afm-dr-config.json') | from_json }}"
+  
+  pre_tasks:
+   - name: Make Sure the mandatory input values are passed from the configuration json file - dr-config.json
+     fail:
+      msg: "Variables file dr-config.json must exist the same directory"
+     when: input is not defined or input.source_scale_gui_username is not defined
+
+  tasks:
+    - set_fact: 
+        scale_remotemount_debug: true
+        source_scale_gui_username: "{{ input.source_scale_gui_username }}"
+        source_scale_gui_password: "{{ input.source_scale_gui_password }}"
+        source_scale_gui_hostname: "{{ input.source_scale_gui_hostname }}"
+        target_scale_gui_username: "{{ input.target_scale_gui_username }}"
+        target_scale_gui_password: "{{ input.target_scale_gui_password }}"
+        target_scale_gui_hostname: "{{ input.target_scale_gui_hostname }}"
+        afm_dr_mappings: "{{ input.afm_dr_mappings }}"
+        validate_certs_uri: "no"
+        restapi_retries_count: 5
+        restapi_retries_delay: 3
+        scalemgmt_endpoint: "scalemgmt/v2"
+        remote_mount_endpoint: "scalemgmt/v2/remotemount"
+
+    - name: Mount Filesystem | target Cluster (access) | Add filesets 
+      include_tasks: afm-dr-common.yml
+
+    - set_fact:
+        target_storage_nodes_list: []  
+
+    - name: Build a list of all the storage nodes of ({{target_cluster_name}})
+      set_fact:
+        target_storage_nodes_list: "{{ target_storage_nodes_list }} + [ '{{ item.split('.').0 }}' ]"
+      with_items: "{{ target_cluster_storage_nodes_name }}"
+
+    - name: Print Source cluster storage nodes
+      debug:
+        msg: "{{ target_storage_nodes_list }}"
+
+    # Add remote cluster
+    - name: "target Cluster (access) | Assign remote cluster role to storage nodes"
+      shell: mmremotecluster add {{target_cluster_name}} -n {{target_storage_nodes_list | join(',')}} -k "/var/mmfs/ssl/target_rsa.pub"
+      register: assign_remotecluster_return      
+      ignore_errors: true  
+
+    - name: Print output for remote cluster assignment
+      debug:
+        msg: "{{ assign_remotecluster_return }}"
+
+
+
+
+      loop: "{{ afm_dr_mappings }}"
+      loop_control:
+        loop_var: fileset_loop
+        index_var: index
+
+
+    - name: target Cluster (access) | Assign gateway role to storage nodes of cluster ({{target_filesystem_loop}})
+      command: /usr/lpp/mmfs/bin/mmchnode -N {{item}} --gateway
+      register: gateway_assignment_return
+      failed_when: (gateway_assignment_return.rc !=0)
+      loop: "{{target_storage_nodes_list}}"
+      
+
+    - name: Add gateway response
+      debug:
+        msg: "{{ gateway_assignment_return }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
+
+
+- hosts: afm-dr-target-gui-hostname
+  tasks:
+    - name: Enable AFM on both clusters
+      shell: /usr/lpp/mmfs/bin/mmauth show gpfs-01.cluster -k /var/mmfs/ssl/prd_rsa.pub
+      register: mmauth_afm_result
+      failed_when: "'success' not in enable_afm_result.stderr" 
+
+
+- hosts: all
+  tasks:
+    - name: Enable AFM on both clusters
+      shell: /usr/lpp/mmfs/bin/mmchconfig afmEnableADR=yes -i
+      register: mmchconfig_status
+    - debug:
+      msg: "{{ mmchconfig_status }}"
+      when:
+        - "'successfully' not in mmchconfig_status.stderr_lines"
+        - mmchconfig_status.stderr_lines is defined
+        - mmchconfig_status.rc == 0
+      ignore_errors: yes
+
+
+    set_fact:
+      my_var: "'successfully' not in mmchconfig_status.stderr_lines"
+    - debug:
+        msg: "{{ my_var }}"
+      when:
+         - "'successfully' not in mmchconfig_status.stderr_lines"
+         - mmchconfig_status.stderr_lines | length > 0
+         - mmchconfig_status.stderr_lines is defined 
+         - mmchconfig_status.rc in [0]
+         - mmchconfig_status.rc == 0
+
+          git_config_list.stdout_lines | join("|") | match("user.name=[^|]+")
+
+      ignore_errors: yes
+
+    - name: Display all variables/facts known for a host
+      ansible.builtin.debug:
+        var: hostvars[inventory_hostname]
+        verbosity: 4      
+
+    - debug:
+         msg: "{{ mmchconfig_status }}"
+      when:
+         - "'successfully' not in mmchconfig_status.stderr_lines"
+         - mmchconfig_status.stderr_lines | length > 0
+         - mmchconfig_status.stderr_lines is defined 
+         - mmchconfig_status.rc in [0]
+         - mmchconfig_status.rc == 0
+
+    - name: debug command
+      debug:
+        msg: "{{ mmchconfig_status }}"
+      
+      
+- hosts: storage_gui_hostname
+  tasks:
+    - name: target Cluster (access) | Add Storage Cluster Key
+      shell: mmauth add {{source_cluster_name}} -k "/var/mmfs/ssl/prd_rsa.pub"
+      register: auth_key_return
+
+    - name: debug command
+      debug:
+        msg: "{{ auth_key_return }}"

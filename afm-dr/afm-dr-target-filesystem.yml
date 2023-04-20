@@ -1,13 +1,25 @@
 ---
-- name: target Cluster (access) | Authorize filesystem
-  command: /usr/lpp/mmfs/bin/mmauth grant {{source_cluster_name}} -f {{target_filesystem_loop}}
-  register: auth_filesystem_return
-  delay: 10
-  ignore_errors: true
+- name: target Cluster (access) | Authorize filesystem ({{target_filesystem_loop}})
+  command: mmauth grant {{source_cluster_name}} -f {{target_filesystem_loop}}
+  register: check_grant_filesystem
+  delay: 3
+  ignore_errors: false
 
-- name: target Cluster (access) | Enabled AFM on the filesystem
-  shell: /usr/lpp/mmfs/bin/mmafmconfig enable {{ afm_dr_mappings | json_query(jmesquery) | first }}
+- name: Set mountpoint of filesystem ({{target_filesystem_loop}})
+  set_fact:
+    target_filesystem_mountpoint: "{{ afm_dr_mappings | json_query(jmesquery) | first }}"
   vars:
-    jmesquery: "[?target_scale_filesystem=='{{ target_filesystem_loop }}'].target_filesystem_mountpoint" 
-  register: afm_enable_filesystem_return
-  delay: 10
+    jmesquery: "[?target_scale_filesystem=='{{ target_filesystem_loop }}'].target_filesystem_mountpoint"
+
+- debug:
+      msg: "Setting file mountpoint {{ target_filesystem_mountpoint }} of filesystem {{target_filesystem_loop}}"
+  when: scale_remotemount_debug is defined and scale_remotemount_debug | bool        
+
+- name: target Cluster (access) | Mounting ({{target_filesystem_mountpoint}}) on filesystem ({{target_filesystem_loop}})
+  command: mmafmconfig enable {{target_filesystem_mountpoint}}
+  register: check_mountpoint_filesystem
+  failed_when: "check_mountpoint_filesystem.rc not in [0]"
+  when: "'success' in check_grant_filesystem.stderr"
+
+- debug:
+      msg: "{{ check_mountpoint_filesystem }}"

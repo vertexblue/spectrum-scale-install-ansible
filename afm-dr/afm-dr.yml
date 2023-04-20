@@ -4,9 +4,7 @@
       shell: /usr/lpp/mmfs/bin/mmchconfig afmEnableADR=yes -i
       register: ps
       
-      changed_when: false
-      failed_when: false
-
+      
 #----------------------------------------- target cluster ----------------------------------------------
 
 - hosts: target_gui_hostname

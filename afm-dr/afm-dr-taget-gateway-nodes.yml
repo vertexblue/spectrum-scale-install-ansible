@@ -1,0 +1,25 @@
+---
+- name: target Cluster (access) | Assign gateway role to storage nodes ({{item}}) of cluster ({{target_cluster_name}})
+  command: /usr/lpp/mmfs/bin/mmchnode -N {{item}} --gateway
+  register: gateway_assignment_return
+  failed_when: (gateway_assignment_return.rc !=0)
+
+- name: target Cluster (access) |
+  command: /usr/lpp/mmfs/bin/mmlscluster
+  register: check_cluster  
+
+- set_fact:
+    msg: '{{ check_cluster.stdout_lines | select("search", item) | first  }}'
+
+- set_fact:
+    gateway_status: "Success"
+  when: "'gateway' in msg"
+
+- set_fact:
+    gateway_status: "Failed"
+  when: "'gateway' not in msg"  
+
+- name: Gateway assigned of storage nodes ({{item}}) is successful
+  debug:
+    msg: "Gateway assigned of storage nodes {{item}} is {{ gateway_status }}"
+  failed_when: (gateway_status == "Failed")

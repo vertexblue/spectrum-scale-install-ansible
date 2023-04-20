@@ -46,7 +46,7 @@
         src: "{{ scale_install_directory_pkg_path }}"
         dest: "{{ scale_extracted_path }}"
         use_ssh_args: yes
-      delay: 60
+      delay: 100
 
 - name: install | Set installation package path
   set_fact:
