@@ -1,6 +1,6 @@
 ---
 - name: target Cluster (access) | Authorize filesystem ({{target_filesystem_loop}})
-  command: mmauth grant {{source_cluster_name}} -f {{target_filesystem_loop}}
+  command: /usr/lpp/mmfs/bin/mmauth grant {{source_cluster_name}} -f {{target_filesystem_loop}}
   register: check_grant_filesystem
   delay: 3
   ignore_errors: false
@@ -16,7 +16,7 @@
   when: scale_remotemount_debug is defined and scale_remotemount_debug | bool        
 
 - name: target Cluster (access) | Mounting ({{target_filesystem_mountpoint}}) on filesystem ({{target_filesystem_loop}})
-  command: mmafmconfig enable {{target_filesystem_mountpoint}}
+  command: /usr/lpp/mmfs/bin/mmafmconfig enable {{target_filesystem_mountpoint}}
   register: check_mountpoint_filesystem
   delay: 3
   failed_when: "check_mountpoint_filesystem.rc not in [0]"
