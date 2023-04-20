@@ -195,17 +195,17 @@ You can create file(s) on the primary/source cluster and it will be replicated o
 
     On production cluster
     ```shell
-    mmcrfileset prdfs2 primary1 -p afmMode=primary --inode-space=new -p afmtarget=gpfs:///gpfs/drfs2/secondary1 -p afmRPO=60
+    mmcrfileset prdfs1 primary1 -p afmMode=primary --inode-space=new -p afmtarget=gpfs:///gpfs/drfs1/secondary1 -p afmRPO=60
     ```
 
     On DR cluster
     ```shell
-    mmcrfileset drfs2 secondary1 -p afmMode=secondary --inode-space=new -p afmPrimaryId=17287556746075602975-0308A8C0643E8123-1
-    mmlinkfileset drfs2 secondary1 -J /gpfs/drfs2/secondary1
+    mmcrfileset drfs1 secondary1 -p afmMode=secondary --inode-space=new -p afmPrimaryId=13715671027130937321-0608A8C06441B0E5-1
+    mmlinkfileset drfs1 secondary1 -J /gpfs/drfs1/secondary1
     ```
     On production cluster
     ```shell
-    mmlinkfileset prdfs2 primary1 -J /gpfs/prdfs2/primary1
+    mmlinkfileset prdfs1 primary1 -J /gpfs/prdfs1/primary1
     ```
   Test – Any files written/updated on /gpfs/prdfs1/primary1 directory will get replicated to DR cluster - /gpfs/drfs1/secondary1 directory.
 
