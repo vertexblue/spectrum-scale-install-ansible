@@ -50,7 +50,7 @@
     - name: target Cluster (access) | Check source cluster ({{source_cluster_name}}) on the target cluster ({{target_cluster_name}})
       command: /usr/lpp/mmfs/bin/mmauth show {{source_cluster_name}}
       register: check_mmauth_show
-      failed_when: "source_cluster_name not in check_mmauth_show.stdout"
+      failed_when: "source_cluster_name not in check_mmauth_show.stderr"
       ignore_errors: true
 
     - debug:
