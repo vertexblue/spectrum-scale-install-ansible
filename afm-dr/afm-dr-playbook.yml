@@ -52,6 +52,8 @@
       register: check_mmauth_show
       failed_when: "source_cluster_name not in check_mmauth_show.stderr"
       ignore_errors: true
+      delay: 3
+
 
     - debug:
          msg: "{{ check_mmauth_show }}"
@@ -150,7 +152,8 @@
     # Add remote cluster
     - name: "target Cluster (access) | Assign remote cluster role to storage nodes"
       shell: mmremotecluster add {{target_cluster_name}} -n {{target_storage_nodes_list | join(',')}} -k "/var/mmfs/ssl/target_rsa.pub"
-      register: assign_remotecluster_return      
+      register: assign_remotecluster_return
+      delay: 5 
       ignore_errors: true  
 
     - name: Print output for remote cluster assignment
