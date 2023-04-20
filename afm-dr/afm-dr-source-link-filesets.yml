@@ -27,6 +27,7 @@
   command: mmlinkfileset {{ target_fileset_link_loop.source_scale_filesystem }} {{ target_fileset_link_loop.source_dir }} -J {{target_fileset_link_loop.source_filesystem_mountpoint}}/{{target_fileset_link_loop.source_dir}}
   register: link_target_fileset_result
   ignore_errors: true
+  delay: 3
 
 - name: Create new fileset link result
   debug:

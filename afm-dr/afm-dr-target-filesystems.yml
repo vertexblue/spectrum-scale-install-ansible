@@ -18,6 +18,7 @@
 - name: target Cluster (access) | Mounting ({{target_filesystem_mountpoint}}) on filesystem ({{target_filesystem_loop}})
   command: mmafmconfig enable {{target_filesystem_mountpoint}}
   register: check_mountpoint_filesystem
+  delay: 3
   failed_when: "check_mountpoint_filesystem.rc not in [0]"
   when: "'success' in check_grant_filesystem.stderr"
 
