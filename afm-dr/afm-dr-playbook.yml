@@ -54,7 +54,6 @@
       ignore_errors: true
       delay: 3
 
-
     - debug:
          msg: "{{ check_mmauth_show }}"
       when: scale_remotemount_debug is defined and scale_remotemount_debug | bool         
