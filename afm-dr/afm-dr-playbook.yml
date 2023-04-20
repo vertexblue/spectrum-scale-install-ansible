@@ -43,7 +43,32 @@
       vars:
         jmesquery: "[*].target_scale_filesystem"  
       
+    - name: target Cluster (access) | Initialize variables
+      include_tasks: afm-dr-common.yml
+      
+    # Auth cluster
+    - name: target Cluster (access) | Check source cluster ({{source_cluster_name}}) on the target cluster ({{target_cluster_name}})
+      command: /usr/lpp/mmfs/bin/mmauth show {{source_cluster_name}}
+      register: check_mmauth_show
+      failed_when: "source_cluster_name not in check_mmauth_show.stdout"
+      ignore_errors: true
 
+    - debug:
+         msg: "{{ check_mmauth_show }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool         
+
+    - name: target Cluster (access) | Add source cluster ({{source_cluster_name}}) on the target cluster ({{target_cluster_name}})
+      command: /usr/lpp/mmfs/bin/mmauth add {{source_cluster_name}} -k "/var/mmfs/ssl/source_rsa.pub"
+      delay: 3
+      register: check_mmauth_key
+      failed_when: "'success' not in enable_afm_result.stderr"
+      when: check_mmauth_show.rc not in [0]
+
+    - debug:
+         msg: "{{ check_mmauth_key }}"
+      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool     
+
+    # Add filesystems
     - set_fact:
         afm_dr_target_filesystem: "{{ afm_dr_mappings | json_query(jmesquery) | unique }}"
       vars:
@@ -55,75 +80,29 @@
       vars:
         jmesquery: "[*].target_scale_filesystem"  
 
-    - name: target Cluster (access) | Initialize variables
-      include_tasks: afm-dr-common.yml
-      
-
-    - name: Print Source cluster name
-      debug:
-        msg: "{{ source_cluster_name }}"
-        
-
-    - name: Print Source cluster filesystem names
-      debug:
-        msg: "{{ source_filesystem | json_query(jmesquery) }}"
-      vars:
-        jmesquery: "[*].name"
-
-    - name: Print Source cluster file mountpoints
-      debug:
-        msg: "{{ source_filesystem | json_query(jmesquery) }}"
-      vars:
-        jmesquery: "[*].mount.mountPoint"  
-        
-
-    - name: Print Source cluster specific mountpoints
-      debug:
-        msg: "{{ source_filesystem | json_query(jmesquery) }}"
-      vars:
-        jmesquery: "[?name=='prdfs1'].mount.mountPoint"  
-       
-
-    - set_fact:
-        target_storage_nodes: []  
-
-    - name: Build a list of all the storage node names
-      set_fact:
-        target_storage_nodes: "{{ target_storage_nodes }} + [ '{{ item.split('.').0 }}' ]"
-      with_items: "{{ target_cluster_storage_nodes_name }}"
-
-    - name: Print Source cluster storage nodes
-      debug:
-        msg: "{{ target_storage_nodes }}"
-      
-
-    - name: target Cluster (access) | Check source cluster on the target cluster
-      command: /usr/lpp/mmfs/bin/mmauth show {{source_cluster_name}}
-      register: check_mmauth_show
-
-    - name: target Cluster (access) | Add source cluster on the target cluster
-      command: /usr/lpp/mmfs/bin/mmauth add {{source_cluster_name}} -k "/var/mmfs/ssl/source_rsa.pub"
-      register: auth_key_return
-      delay: 10
-      failed_when: auth_key_return.rc not in [1, 0]
-      ignore_errors: true 
-
-    - name: target Cluster (access) | Granting and afm configuration of the filesystem
+    - name: target Cluster (access) | Granting and mounting afm configuration of the filesystem
       include_tasks: afm-dr-target-filesystem.yml
       loop: "{{ afm_dr_target_filesystem }}"      
       loop_control:
         loop_var: target_filesystem_loop
         index_var: index   
-     
-    - name: target Cluster (access) | Assign gateway role to storage nodes
-      command: /usr/lpp/mmfs/bin/mmchnode -N {{target_storage_nodes | join(',')}} --gateway
-      register: gateway_assignment_return
-      failed_when: (gateway_assignment_return.rc !=0)
 
-    - name: Add gateway response
+    # Add gateway
+    - set_fact:
+        target_storage_nodes_list: []  
+
+    - name: Build a list of all the storage nodes of ({{target_cluster_name}})
+      set_fact:
+        target_storage_nodes_list: "{{ target_storage_nodes_list }} + [ '{{ item.split('.').0 }}' ]"
+      with_items: "{{ target_cluster_storage_nodes_name }}"
+
+    - name: Print Source cluster storage nodes
       debug:
-        msg: "{{ gateway_assignment_return }}"
-      when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
+        msg: "{{ target_storage_nodes_list }}"      
+
+    - name: target Cluster (access) | Add storage node {{target_storage_nodes_list}} to gateway role
+      include_tasks: afm-dr-target-gateway-nodes.yml
+      loop: "{{ target_storage_nodes_list }}"  
       
 #--------------------------------------------------------------------------      
 
@@ -157,29 +136,40 @@
       include_tasks: afm-dr-common.yml
 
     - set_fact:
-        target_storage_nodes: []  
+        target_storage_nodes_list: []  
 
-    - name: Build a list of all the storage node names
+    - name: Build a list of all the storage nodes of ({{target_cluster_name}})
       set_fact:
-        target_storage_nodes: "{{ target_storage_nodes }} + [ '{{ item.split('.').0 }}' ]"
+        target_storage_nodes_list: "{{ target_storage_nodes_list }} + [ '{{ item.split('.').0 }}' ]"
       with_items: "{{ target_cluster_storage_nodes_name }}"
 
     - name: Print Source cluster storage nodes
       debug:
-        msg: "{{ target_storage_nodes }}"
+        msg: "{{ target_storage_nodes_list }}"
 
+    # Add remote cluster
     - name: "target Cluster (access) | Assign remote cluster role to storage nodes"
-      shell: mmremotecluster add {{target_cluster_name}} -n {{target_storage_nodes | join(',')}} -k "/var/mmfs/ssl/target_rsa.pub"
+      shell: mmremotecluster add {{target_cluster_name}} -n {{target_storage_nodes_list | join(',')}} -k "/var/mmfs/ssl/target_rsa.pub"
       register: assign_remotecluster_return      
-      delay: 10
-      failed_when: assign_remotecluster_return.rc not in [1, 0]
-      ignore_errors: true 
+      ignore_errors: true  
 
     - name: Print output for remote cluster assignment
       debug:
         msg: "{{ assign_remotecluster_return }}"
-       
 
+    - set_fact:
+        remotecluster_status: "Failed"
+        
+    - set_fact:
+        remotecluster_status: "Success"
+      when: ((('success' in assign_remotecluster_return.stderr) and (assign_remotecluster_return.rc in [0])) or (('already defined' in assign_remotecluster_return.stderr) and (assign_remotecluster_return.rc in [1])))
+
+    - name: target Cluster (access) | Assign remote cluster {{target_cluster_name}} of storage nodes ({{target_storage_nodes_list}})
+      debug:
+        msg: "Assign remote cluster {{target_cluster_name}} is {{ remotecluster_status }}"
+      failed_when: (remotecluster_status == "Failed")
+       
+    # Add filesystems
     - name: Print input of filesystem names
       debug:
         msg: "{{ afm_dr_mappings | json_query(jmesquery) | unique }}"
@@ -199,8 +189,7 @@
 
     - name: Mount Filesystem | target Cluster (access) | Add and Mount the filesystems
       include_tasks: afm-dr-filesystems.yml
-      loop: "{{ afm_dr_target_filesystem }}"
-      
+      loop: "{{ afm_dr_target_filesystem }}"      
       loop_control:
         loop_var: target_filesystem_loop
         index_var: index
@@ -209,9 +198,8 @@
       include_tasks: afm-dr-source-filesets.yml
       loop: "{{ afm_dr_mappings }}"
       loop_control:
-        loop_var: fileset_loop
+        loop_var: source_fileset_mapping_loop
         index_var: index
-
 #--------------------------------------------------------------------------
 
 - hosts: afm-dr-target-gui-hostname
@@ -244,7 +232,7 @@
       include_tasks: afm-dr-target-filesets.yml
       loop: "{{ afm_dr_mappings }}"
       loop_control:
-        loop_var: fileset_loop
+        loop_var: target_fileset_mapping_loop
         index_var: index
 
 #--------------------------------------------------------------------------
@@ -279,5 +267,5 @@
       include_tasks: afm-dr-source-link-filesets.yml
       loop: "{{ afm_dr_mappings }}"
       loop_control:
-        loop_var: fileset_loop
+        loop_var: target_fileset_link_loop
         index_var: index        

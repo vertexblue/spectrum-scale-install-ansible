@@ -1,9 +1,9 @@
 ---
-- name: source Cluster (access) | Check if the fileset ( {{fileset_loop.source_scale_filesystem}} ) is already defined
+- name: source Cluster (access) | Check if the fileset ( {{source_fileset_mapping_loop.source_scale_filesystem}} ) is already defined
   uri:
     validate_certs: "{{ validate_certs_uri }}"
     force_basic_auth: yes
-    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.source_scale_filesystem }}/filesets
+    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ source_fileset_mapping_loop.source_scale_filesystem }}/filesets
     method: GET
     user: "{{ source_scale_gui_username }}"
     password: "{{ source_scale_gui_password }}"
@@ -25,8 +25,8 @@
 
 - name: block
   block:
-  - name: source Cluster (owning) | Create fileset  ({{fileset_loop.source_dir}})
-    command: mmcrfileset {{ fileset_loop.source_scale_filesystem }} {{ fileset_loop.source_dir }} -p afmMode=primary --inode-space=new -p afmtarget=gpfs://{{fileset_loop.target_filesystem_mountpoint}}/{{ fileset_loop.target_dir }} -p afmRPO=60
+  - name: source Cluster (owning) | Create fileset  ({{source_fileset_mapping_loop.source_dir}})
+    command: mmcrfileset {{ source_fileset_mapping_loop.source_scale_filesystem }} {{ source_fileset_mapping_loop.source_dir }} -p afmMode=primary --inode-space=new -p afmtarget=gpfs://{{source_fileset_mapping_loop.target_filesystem_mountpoint}}/{{ source_fileset_mapping_loop.target_dir }} -p afmRPO=60
     register: add_source_fileset_result
     delay: 30
     ignore_errors: true
@@ -36,4 +36,4 @@
       msg: "{{ add_source_fileset_result }}"
     when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
 
-  when: (source_fileset_results.status == 400) or (source_fileset_results.status == 200 and fileset_loop.source_dir not in source_fileset_names)
+  when: (source_fileset_results.status == 400) or (source_fileset_results.status == 200 and source_fileset_mapping_loop.source_dir not in source_fileset_names)

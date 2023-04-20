@@ -1,9 +1,9 @@
 ---
-- name: source Cluster (access) | Check if the fileset ( {{fileset_loop.source_scale_filesystem}} ) is already defined
+- name: source Cluster (access) | Check if the fileset ( {{target_fileset_link_loop.source_scale_filesystem}} ) is already defined
   uri:
     validate_certs: "{{ validate_certs_uri }}"
     force_basic_auth: yes
-    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ fileset_loop.source_scale_filesystem }}/filesets
+    url: https://{{ source_scale_gui_hostname }}/{{ scalemgmt_endpoint }}/filesystems/{{ target_fileset_link_loop.source_scale_filesystem }}/filesets
     method: GET
     user: "{{ source_scale_gui_username }}"
     password: "{{ source_scale_gui_password }}"
@@ -23,8 +23,8 @@
     msg: "{{ source_fileset_names }}"
   when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
 
-- name: source Cluster (access) | Link fileset ({{fileset_loop.source_dir}})      
-  command: mmlinkfileset {{ fileset_loop.source_scale_filesystem }} {{ fileset_loop.source_dir }} -J {{fileset_loop.source_filesystem_mountpoint}}/{{fileset_loop.source_dir}}
+- name: source Cluster (access) | Link fileset ({{target_fileset_link_loop.source_dir}})      
+  command: mmlinkfileset {{ target_fileset_link_loop.source_scale_filesystem }} {{ target_fileset_link_loop.source_dir }} -J {{target_fileset_link_loop.source_filesystem_mountpoint}}/{{target_fileset_link_loop.source_dir}}
   register: link_target_fileset_result
   ignore_errors: true
 
@@ -33,7 +33,7 @@
     msg: "{{ link_target_fileset_result }}"
   when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
 
-- name: source Cluster (access) | Link fileset ({{fileset_loop.source_dir}})      
-  command: mmafmctl {{ fileset_loop.source_scale_filesystem }} getstate
+- name: source Cluster (access) | Link fileset ({{target_fileset_link_loop.source_dir}})      
+  command: mmafmctl {{ target_fileset_link_loop.source_scale_filesystem }} getstate
   register: source_fileset_link_result
   ignore_errors: true
