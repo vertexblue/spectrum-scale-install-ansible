@@ -196,6 +196,24 @@
         loop_var: target_filesystem_loop
         index_var: index
 
+    # Add gateway
+    - set_fact:
+        source_storage_nodes_list: []  
+
+    - name: Build a list of all the storage nodes of ({{source_cluster_name}})
+      set_fact:
+        source_storage_nodes_list: "{{ source_storage_nodes_list }} + [ '{{ item.split('.').0 }}' ]"
+      with_items: "{{ source_cluster_storage_nodes_name }}"
+
+    - name: Print Source cluster storage nodes
+      debug:
+        msg: "{{ source_storage_nodes_list }}"      
+
+    - name: source Cluster (access) | Add storage node {{source_storage_nodes_list}} to gateway role
+      include_tasks: afm-dr-target-gateway-nodes.yml
+      loop: "{{ source_storage_nodes_list }}"  
+
+
     - name: Mount Filesystem | target Cluster (access) | Add filesets 
       include_tasks: afm-dr-source-filesets.yml
       loop: "{{ afm_dr_mappings }}"
