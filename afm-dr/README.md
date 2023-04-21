@@ -9,8 +9,8 @@ User need to have primary/source and disaster recovery(DR)/target Spectrum Scale
 It is assumed that you are familiar with the creating Spectrum Scale cluster procedure. In case, you want to learn more, please follow the instructions 
 mentioned at https://github.com/vertexblue/gcp-spectrum-scale-tf/blob/main/docs/gcp.md .
 
-Now you can create primary and dr clusters from the same directory, let define terraform workspaces to manage the state of resources for the both clusters.
-Go to directory "gcp_scale_templates/gcp_existing_vpc_scale", there are already two sample cluster profiles 1) Production cluster - gpfs-01.tfvars 2) Disaster recovery cluster gpfs-02.tfvars.
+Now you can create primary and dr clusters from the same directory, let's define terraform workspaces to manage the state of resources for both clusters.
+Go to the directory "gcp_scale_templates/gcp_existing_vpc_scale", there are already two sample cluster profiles 1) Production cluster- gpfs-01.tfvars 2) Disaster recovery cluster gpfs-02.tfvars.
 
 - **Infrastructure creation**
     1. Create terraform workspace to provision resources.
@@ -28,11 +28,11 @@ Go to directory "gcp_scale_templates/gcp_existing_vpc_scale", there are already 
 
     4. Create terraform workspace to provision resources.
     ```
-    terraform workspace new prd
+    terraform workspace new dr
     ```
     5. Select terraform workspace to provision resources.
     ```
-    terraform workspace select prd    
+    terraform workspace select dr    
     ```
     6. Create dr/secondary cluster
     ```
@@ -41,7 +41,7 @@ Go to directory "gcp_scale_templates/gcp_existing_vpc_scale", there are already 
 
 - **DR Configuration Creation**
 
-  Once clusters is created, based on your cluster prefix choice, the automation has created a cluster profile under the /opt/IBM subdirectory as following:
+  Once clusters is created, based on your cluster prefix choice, the automation has created a cluster profile under the /opt/IBM subdirectory as follows:
   ```shell
   /opt/IBM
   ├── <Primary Cluster Profile e.g. gpfs-01>/
@@ -163,7 +163,7 @@ You can verify the AFM fileset on the source filesystem using following command.
   pr44            gpfs:///gpfs/drfs1/dr44                       Active               gpfs-01-storage-instance-1.us-central1-a 0   1
   ```
 
-You can create file(s) on the primary/source cluster and it will be replicated on the dr/target cluster within few minutes based on file size.
+You can create file(s) on the primary/source cluster, which will be replicated on the dr/target cluster within a few minutes based on file size.
 
 **Note:**
   The source directory on the primary cluster should be always on the root location. Here the source directoy is called a junction location. The junction is created in the current directory and has the same name as the fileset being linked. After the command completes, the new junction appears as an ordinary directory, except that the user is not allowed to unlink or delete it with the rmdir command it. The user can use the mv command on the directory to move to a new location in the parent fileset, but the mv command is not allowed to move the junction to a different fileset.
@@ -209,3 +209,5 @@ You can create file(s) on the primary/source cluster and it will be replicated o
     ```
   Test – Any files written/updated on /gpfs/prdfs1/primary1 directory will get replicated to DR cluster - /gpfs/drfs1/secondary1 directory.
 
+=======
+  The source directory on the primary cluster should always be on the root location. Here the source directory is called a junction location. The junction is created in the current directory and has the same name as the filesets being linked. After the command completes, the new junction appears as an ordinary directory, except that the user is not allowed to unlink or delete it with the rmdir command it. The user can use the mv command on the directory to move to a new location in the parent fileset, but the mv command is not allowed to move the junction to a different fileset.
