@@ -54,7 +54,6 @@
       ignore_errors: true
       delay: 3
 
-
     - debug:
          msg: "{{ check_mmauth_show }}"
       when: scale_remotemount_debug is defined and scale_remotemount_debug | bool         
@@ -63,7 +62,7 @@
       command: /usr/lpp/mmfs/bin/mmauth add {{source_cluster_name}} -k "/var/mmfs/ssl/source_rsa.pub"
       delay: 3
       register: check_mmauth_key
-      failed_when: "'success' not in enable_afm_result.stderr"
+      failed_when: "'success' not in check_mmauth_key.stderr"
       when: check_mmauth_show.rc not in [0]
 
     - debug:

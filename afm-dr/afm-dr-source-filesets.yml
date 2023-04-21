@@ -26,7 +26,7 @@
 - name: block
   block:
   - name: source Cluster (owning) | Create fileset  ({{source_fileset_mapping_loop.source_dir}})
-    command: mmcrfileset {{ source_fileset_mapping_loop.source_scale_filesystem }} {{ source_fileset_mapping_loop.source_dir }} -p afmMode=primary --inode-space=new -p afmtarget=gpfs://{{source_fileset_mapping_loop.target_filesystem_mountpoint}}/{{ source_fileset_mapping_loop.target_dir }} -p afmRPO=60
+    command: /usr/lpp/mmfs/bin/mmcrfileset {{ source_fileset_mapping_loop.source_scale_filesystem }} {{ source_fileset_mapping_loop.source_dir }} -p afmMode=primary --inode-space=new -p afmtarget=gpfs://{{source_fileset_mapping_loop.target_filesystem_mountpoint}}/{{ source_fileset_mapping_loop.target_dir }} -p afmRPO=60
     register: add_source_fileset_result
     delay: 30
     ignore_errors: true

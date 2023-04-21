@@ -32,7 +32,7 @@
 - name: block
   block:
     - name: source Cluster (owning) | Assign remote filesystem to the target cluster
-      command: mmremotefs add {{target_filesystem_loop}} -f {{target_filesystem_loop}} -C  {{target_cluster_name}} -T {{target_filesystem_mountpoint}}
+      command: /usr/lpp/mmfs/bin/mmremotefs add {{target_filesystem_loop}} -f {{target_filesystem_loop}} -C  {{target_cluster_name}} -T {{target_filesystem_mountpoint}}
       register: remote_ref_return
       delay: 10
       failed_when: (remote_ref_return.rc !=0)
@@ -44,7 +44,7 @@
       
 
     - name: "source Cluster (owning) | Mount remote filesystem to storage nodes"
-      shell: mmmount {{ target_filesystem_loop }} -a
+      shell: /usr/lpp/mmfs/bin/mmmount {{ target_filesystem_loop }} -a
       register: remote_mount_return
       delay: 10
       failed_when: "remote_mount_return.rc not in [ 0, 1 ]"

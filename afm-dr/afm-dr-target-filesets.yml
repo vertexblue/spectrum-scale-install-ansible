@@ -51,7 +51,7 @@
       when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
 
     - name: target Cluster (access) | Create fileset  ({{target_fileset_mapping_loop.target_dir}})
-      command: mmcrfileset {{ target_fileset_mapping_loop.target_scale_filesystem }} {{ target_fileset_mapping_loop.target_dir }} -p afmMode=secondary --inode-space=new -p afmPrimaryId={{ fileset_id }}
+      command: /usr/lpp/mmfs/bin/mmcrfileset {{ target_fileset_mapping_loop.target_scale_filesystem }} {{ target_fileset_mapping_loop.target_dir }} -p afmMode=secondary --inode-space=new -p afmPrimaryId={{ fileset_id }}
       register: create_target_fileset_result
       ignore_errors: true
 
@@ -61,7 +61,7 @@
       when: scale_remotemount_debug is defined and scale_remotemount_debug | bool
 
     - name: target Cluster (access) | Link fileset ({{target_fileset_mapping_loop.target_dir}})      
-      command: mmlinkfileset {{ target_fileset_mapping_loop.target_scale_filesystem }} {{ target_fileset_mapping_loop.target_dir }} -J {{target_fileset_mapping_loop.target_filesystem_mountpoint}}/{{target_fileset_mapping_loop.target_dir}}
+      command: /usr/lpp/mmfs/bin/mmlinkfileset {{ target_fileset_mapping_loop.target_scale_filesystem }} {{ target_fileset_mapping_loop.target_dir }} -J {{target_fileset_mapping_loop.target_filesystem_mountpoint}}/{{target_fileset_mapping_loop.target_dir}}
       register: link_target_fileset_result
       ignore_errors: true
 

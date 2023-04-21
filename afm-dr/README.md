@@ -166,4 +166,48 @@ You can verify the AFM fileset on the source filesystem using following command.
 You can create file(s) on the primary/source cluster, which will be replicated on the dr/target cluster within a few minutes based on file size.
 
 **Note:**
+  The source directory on the primary cluster should be always on the root location. Here the source directoy is called a junction location. The junction is created in the current directory and has the same name as the fileset being linked. After the command completes, the new junction appears as an ordinary directory, except that the user is not allowed to unlink or delete it with the rmdir command it. The user can use the mv command on the directory to move to a new location in the parent fileset, but the mv command is not allowed to move the junction to a different fileset.
+
+- **DR Configuration Creation**
+
+  The following are the manual script that will support setting up Primary and DR cluster for AFM DR capability.
+
+  Go to DR cluster and run following commands.
+    ```shell
+    mmchconfig afmEnableADR=yes -i
+    mmauth add gpfs-01.cluster -k /var/mmfs/ssl/source_rsa.pub
+    mmauth grant gpfs-01.cluster -f drfs1
+    mmafmconfig enable /gpfs/drfs1
+    mmauth grant gpfs-01.cluster -f drfs2
+    mmafmconfig enable /gpfs/drfs2
+    mmchnode -N gpfs-02-storage-instance-1,gpfs-02-storage-instance-2 --gateway
+    ```
+  Go to Production cluster and run following commands.
+    ```shell
+    mmchconfig afmEnableADR=yes -i
+    mmremotecluster add gpfs-02.cluster -n gpfs-02-storage-instance-1,gpfs-02-storage-instance-2 -k /var/mmfs/ssl/target_rsa.pub
+    mmremotefs add drfs1 -f drfs1 -C gpfs-02.cluster -T "/gpfs/drfs1" 
+    mmremotefs add drfs2 -f drfs2 -C gpfs-02.cluster -T "/gpfs/drfs2" 
+    mmmount drfs1 -a
+    mmmount drfs2 -a
+    ```
+  AFM Setup
+
+    On production cluster
+    ```shell
+    mmcrfileset prdfs1 primary1 -p afmMode=primary --inode-space=new -p afmtarget=gpfs:///gpfs/drfs1/secondary1 -p afmRPO=60
+    ```
+
+    On DR cluster
+    ```shell
+    mmcrfileset drfs1 secondary1 -p afmMode=secondary --inode-space=new -p afmPrimaryId=13715671027130937321-0608A8C06441B0E5-1
+    mmlinkfileset drfs1 secondary1 -J /gpfs/drfs1/secondary1
+    ```
+    On production cluster
+    ```shell
+    mmlinkfileset prdfs1 primary1 -J /gpfs/prdfs1/primary1
+    ```
+  Test – Any files written/updated on /gpfs/prdfs1/primary1 directory will get replicated to DR cluster - /gpfs/drfs1/secondary1 directory.
+
+=======
   The source directory on the primary cluster should always be on the root location. Here the source directory is called a junction location. The junction is created in the current directory and has the same name as the filesets being linked. After the command completes, the new junction appears as an ordinary directory, except that the user is not allowed to unlink or delete it with the rmdir command it. The user can use the mv command on the directory to move to a new location in the parent fileset, but the mv command is not allowed to move the junction to a different fileset.

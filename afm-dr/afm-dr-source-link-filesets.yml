@@ -24,7 +24,7 @@
   when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
 
 - name: source Cluster (access) | Link fileset ({{target_fileset_link_loop.source_dir}})      
-  command: mmlinkfileset {{ target_fileset_link_loop.source_scale_filesystem }} {{ target_fileset_link_loop.source_dir }} -J {{target_fileset_link_loop.source_filesystem_mountpoint}}/{{target_fileset_link_loop.source_dir}}
+  command: /usr/lpp/mmfs/bin/mmlinkfileset {{ target_fileset_link_loop.source_scale_filesystem }} {{ target_fileset_link_loop.source_dir }} -J {{target_fileset_link_loop.source_filesystem_mountpoint}}/{{target_fileset_link_loop.source_dir}}
   register: link_target_fileset_result
   ignore_errors: true
   delay: 3
@@ -35,6 +35,6 @@
   when: scale_remotemount_debug is defined and scale_remotemount_debug | bool  
 
 - name: source Cluster (access) | Link fileset ({{target_fileset_link_loop.source_dir}})      
-  command: mmafmctl {{ target_fileset_link_loop.source_scale_filesystem }} getstate
+  command: /usr/lpp/mmfs/bin/mmafmctl {{ target_fileset_link_loop.source_scale_filesystem }} getstate
   register: source_fileset_link_result
   ignore_errors: true
