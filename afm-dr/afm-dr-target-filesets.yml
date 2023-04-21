@@ -40,6 +40,10 @@
       register: get_afmprimaryid
       ignore_errors: true      
 
+    - name: Fileset information response for ({{ target_fileset_mapping_loop.source_dir }}) on ({{ target_fileset_mapping_loop.source_scale_filesystem }})
+      debug:
+        msg: "{{ get_afmprimaryid }}"
+
     - set_fact:
         fileset_id: "{{ get_afmprimaryid.json |  json_query(jmesquery) | first | join }}"
       vars:
