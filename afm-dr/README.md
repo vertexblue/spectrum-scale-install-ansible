@@ -114,8 +114,12 @@ The AFM DR playbook can be executed using wrapper file.
   - Using the automation script:
 
     ```shell
-    $ cd <>/afm-dr/
-    $ ./run-afm-dr.sh
+    $ cd /opt/IBM/<GPFS Cluster Profile Folder>/spectrum-scale-install-ansible/afm-dr/
+    ```
+    e.g. /opt/IBM/gpfs-01/spectrum-scale-install-ansible/afm-dr/
+    
+    ```shell
+    $ sh run-afm-dr.sh
     ```   
 
 **Note:**
@@ -197,11 +201,17 @@ You can create file(s) on the primary/source cluster, which will be replicated o
     ```shell
     mmcrfileset prdfs1 primary1 -p afmMode=primary --inode-space=new -p afmtarget=gpfs:///gpfs/drfs1/secondary1 -p afmRPO=60
     ```
+    Save primary identity number the output from above command.
 
     On DR cluster
     ```shell
-    mmcrfileset drfs1 secondary1 -p afmMode=secondary --inode-space=new -p afmPrimaryId=13715671027130937321-0608A8C06441B0E5-1
+    mmcrfileset drfs1 secondary1 -p afmMode=secondary --inode-space=new -p afmPrimaryId=<output from above command>
+    ```
+    ```shell
     mmlinkfileset drfs1 secondary1 -J /gpfs/drfs1/secondary1
+    ```
+    ```shell
+    mmchnode -N gpfs-01-storage-instance-1,gpfs-01-storage-instance-2 --gateway
     ```
     On production cluster
     ```shell
